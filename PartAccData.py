@@ -21,8 +21,7 @@ def read_csv_and_create_participants(filename):
     return participants_directory
 
 
-participants = read_csv_and_create_participants('PART.csv')
-
+#participants = read_csv_and_create_participants('data\PART.csv')
 
 #Search examples:
 

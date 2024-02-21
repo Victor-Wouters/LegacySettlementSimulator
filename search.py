@@ -1,6 +1,11 @@
-import PartAccData
+import Simulator
 
-for i in PartAccData.participants.values():
-    print(i.get_part_id())
-    print(i.get_account('1').get_balance())
-    print(i.get_account('3').get_credit_limit())
+for i, value in Simulator.participants.items():
+    for j in Simulator.transactions_entry['FromAccountId'].unique():
+        print('Participant: ')
+        print(value.get_part_id())
+        print('Account:')
+        print(value.get_account(j).get_account_id())
+        print('Account Balance: ' )
+        print(value.get_account(j).get_balance())
+   

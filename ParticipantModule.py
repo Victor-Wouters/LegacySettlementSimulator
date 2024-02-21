@@ -14,7 +14,7 @@ class Participant:
             print(f"Account ID {account_id} already exists for participant {self.part_id}.")
         else:
             self.__accounts[account_id] = AccountModule.Account(account_id, balance, credit_limit)
-
+            
     def get_account(self, account_id):
         # Retrieve an account by its ID
         return self.__accounts.get(account_id, None)

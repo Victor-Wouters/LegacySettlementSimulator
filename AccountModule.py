@@ -8,6 +8,8 @@ class Account:
         return self.__account_id
     def get_balance(self):
         return self.__balance
+    def edit_balance(self, transferred):
+        self.__balance = self.__balance + transferred
     def get_credit_limit(self):
         return self.__credit_limit
 

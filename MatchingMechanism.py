@@ -13,6 +13,8 @@ def matching(time, opening_time, queue_1, matched_transactions, momentary_transa
     if time >= opening_time: 
         queue_1, matched_transactions, event_log = matching_insertions(momentary_transactions, queue_1, matched_transactions, event_log, time)
     
+    ####### ADD AFTER CLOSE
+        
     return queue_1, matched_transactions, event_log
 
 def matching_insertions(momentary_transactions, queue_1, matched_transactions, event_log, time):

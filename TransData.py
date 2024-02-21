@@ -2,7 +2,9 @@ import pandas as pd
 
 def read_TRANS(filename):
 
-    DF_TRANS = pd.read_csv(filename,sep=';')
+    dtype_spec = {'TID': str}
+
+    DF_TRANS = pd.read_csv(filename,sep=';', dtype=dtype_spec)
 
     return DF_TRANS
 

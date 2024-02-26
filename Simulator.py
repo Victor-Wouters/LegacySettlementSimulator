@@ -1,9 +1,14 @@
 import PartAccData
 import TransData
 import MatchingMechanism
-import ConvertTime
 import SettlementMechanism
 import pandas as pd
+import pandas as pd
+import datetime
+
+today = datetime.date.today()
+midnight = datetime.datetime.combine(today, datetime.time.min)
+
 
 #read in participant and account data:
 participants = PartAccData.read_csv_and_create_participants('data\PARTbig.csv') #Dictionary (key:PartID, value:Part Object)
@@ -12,23 +17,35 @@ participants = PartAccData.read_csv_and_create_participants('data\PARTbig.csv') 
 transactions_entry = TransData.read_TRANS('data\TRANSbig.csv') #Dataframe
 
 queue_1 = pd.DataFrame()    # Transations waiting to be matched
-matched_transactions = pd.DataFrame()   # Transactions matched, not yet settled
+start_matching = pd.DataFrame()   # Transactions matched, not yet settled
+end_matching = pd.DataFrame()
 queue_2  = pd.DataFrame()   # Matched, but unsettled
 settled_transactions = pd.DataFrame()   # Transations settled and completed
-event_log = pd.DataFrame(columns=['TID', 'Time', 'Activity'])   # Event log with all activities
+event_log = pd.DataFrame(columns=['TID', 'Starttime', 'Endtime', 'Activity'])   # Event log with all activities
 
-opening_time = 601 #10:00
+transactions_entry['Time'] = transactions_entry['Time'].apply(lambda x: midnight + datetime.timedelta(minutes=x-1))
+start = datetime.datetime.combine(datetime.date.today(), datetime.time.min)
+
+opening_time = start + datetime.timedelta(minutes=50) #10:00
+print(opening_time)
 #add closing time
 
-for time in range(1,1441):   # For-loop through every minute of real-time processing of the business day
+for i in range(86400):   # For-loop through every minute of real-time processing of the business day 86400
 
+    if i % 10000 == 0:
+        print(f"Iteration {i}")
+
+    time = start + datetime.timedelta(seconds=i)
+    
     modified_accounts = dict() # Keep track of the accounts modified in this minute to use in queue 2 
 
-    momentary_transactions = transactions_entry[transactions_entry['Time']==time]     # Take all the transactions inserted on this minute
+    insert_transactions = transactions_entry[transactions_entry['Time']==time]     # Take all the transactions inserted on this minute
 
-    queue_1, matched_transactions, event_log  = MatchingMechanism.matching(time, opening_time, queue_1, matched_transactions, momentary_transactions, event_log) # Match inserted transactions
+    queue_1, start_matching, event_log  = MatchingMechanism.matching(time, opening_time, queue_1, start_matching, insert_transactions, event_log) # Match inserted transactions
     
-    matched_transactions, queue_2,  settled_transactions, event_log = SettlementMechanism.settle(time, matched_transactions, queue_2, settled_transactions, participants, event_log, modified_accounts) # Settle matched transactions
+    end_matching, start_matching, event_log = MatchingMechanism.matching_execution(start_matching, end_matching, time, event_log)
+    
+    end_matching, queue_2,  settled_transactions, event_log = SettlementMechanism.settle(time, end_matching, queue_2, settled_transactions, participants, event_log, modified_accounts) # Settle matched transactions
     
     queue_2,  settled_transactions, event_log = SettlementMechanism.retry_settle(time, queue_2, settled_transactions, participants, event_log, modified_accounts)
 
@@ -37,7 +54,7 @@ for time in range(1,1441):   # For-loop through every minute of real-time proces
 print("queue 1:")
 print(queue_1)
 print("matched:")
-print(matched_transactions)
+print(start_matching)
 print("settled:")
 print(settled_transactions)
 print("queue 2:")
@@ -45,9 +62,7 @@ print(queue_2)
 print("event log:")
 print(event_log)
 
-event_log['Time'] = event_log['Time'].apply(ConvertTime.convert_minutes_to_time)
-event_log.to_csv('eventlog.csv', index=False, sep = ';')
+
+event_log.to_csv('eventlogtest.csv', index=False, sep = ';')
 
 
-
-            

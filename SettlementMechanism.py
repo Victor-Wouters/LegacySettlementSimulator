@@ -23,7 +23,7 @@ def settle(time, matched_transactions, queue_2, settled_transactions, participan
 
                 # log in eventlog
                 for i in [0,1]:
-                    event_log = Eventlog.Add_to_eventlog(event_log, time, instructions_for_processing['TID'].iloc[i], activity='Settled successful')
+                    event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Settled successful')
 
             # if settlement rejected, move transactions to queue 2
             else:
@@ -31,7 +31,7 @@ def settle(time, matched_transactions, queue_2, settled_transactions, participan
 
                 # log in eventlog
                 for i in [0,1]:
-                    event_log = Eventlog.Add_to_eventlog(event_log, time, instructions_for_processing['TID'].iloc[i], activity='Added to queue 2')
+                    event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Added to queue 2')
 
     return matched_transactions, queue_2,  settled_transactions, event_log
 
@@ -92,13 +92,13 @@ def retry_settle(time, queue_2, settled_transactions, participants, event_log, m
 
                     # log in eventlog
                     for i in [0,1]:
-                        event_log = Eventlog.Add_to_eventlog(event_log, time, instructions_for_processing['TID'].iloc[i], activity='Settled successful from queue 2')
+                        event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Settled successful from queue 2')
 
                 # if settlement rejected, move transactions to queue 2
                 else:
                     # log in eventlog
                     for i in [0,1]:
-                        event_log = Eventlog.Add_to_eventlog(event_log, time, instructions_for_processing['TID'].iloc[i], activity='Added again to queue 2')
+                        event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Added again to queue 2')
 
 
 

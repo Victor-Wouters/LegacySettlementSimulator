@@ -67,7 +67,7 @@ def matching_in_queue(queue_1, start_matching, event_log, time):
 
     return queue_1, start_matching, event_log
 
-def matching_execution(start_matching, end_matching, current_time, event_log):
+def matching_duration(start_matching, end_matching, current_time, event_log):
     
     if not start_matching.empty:
 

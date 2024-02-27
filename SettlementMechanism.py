@@ -1,17 +1,40 @@
 import pandas as pd
 import Eventlog
+import datetime
 
-def settle(time, matched_transactions, queue_2, settled_transactions, participants, event_log, modified_accounts):
+def settle(time, end_matching, start_checking_balance, end_checking_balance, queue_2, settled_transactions, participants, event_log, modified_accounts):
 
     # take 2 matched instructions
-    if not matched_transactions.empty:
-        matched_linkcodes = matched_transactions['Linkcode'].unique()
+    if not end_matching.empty:
+        matched_linkcodes = end_matching['Linkcode'].unique()
         for linkcode in matched_linkcodes:
-            instructions_for_processing = matched_transactions[matched_transactions['Linkcode'] == linkcode]
-            matched_transactions = matched_transactions[matched_transactions['Linkcode'] != linkcode]
-            settlement_confirmation = True
+            instructions_for_processing = end_matching[end_matching['Linkcode'] == linkcode]
+            end_matching = end_matching[end_matching['Linkcode'] != linkcode]
+            
+            instructions_for_processing["Starttime"] = time
+            # Save for 2 sec before checking
+            start_checking_balance = pd.concat([start_checking_balance,instructions_for_processing], ignore_index=True)
 
-            # check balance and if not ok: reject settlement
+    # duration of checking balance and credit activity       
+    rows_to_remove = []
+    for index, instruction_checking in start_checking_balance.iterrows():
+        print(time)
+        print(instruction_checking["Starttime"] + datetime.timedelta(seconds=2))
+        if time == (instruction_checking["Starttime"] + datetime.timedelta(seconds=2)):
+            instruction_ended_checking = pd.DataFrame([instruction_checking])
+            event_log = Eventlog.Add_to_eventlog(event_log, instruction_checking["Starttime"], time, instruction_ended_checking['TID'], activity='Checking balance and credit')
+            end_checking_balance = pd.concat([end_checking_balance,instruction_ended_checking], ignore_index=True)
+            rows_to_remove.append(index)
+    start_checking_balance = start_checking_balance.drop(rows_to_remove)
+    
+    # check balance and if not ok: reject settlement    
+    if not end_checking_balance.empty:
+        matched_linkcodes = end_checking_balance['Linkcode'].unique()
+        for linkcode in matched_linkcodes:
+            instructions_for_processing = end_checking_balance[end_checking_balance['Linkcode'] == linkcode]
+            end_checking_balance = end_checking_balance[end_checking_balance['Linkcode'] != linkcode]
+
+            settlement_confirmation = True
             settlement_confirmation = check_balance(settlement_confirmation, instructions_for_processing, participants)
 
             # if settlement confirmed, edit balances, transactions: move from matched transactions to settled transactions
@@ -33,7 +56,7 @@ def settle(time, matched_transactions, queue_2, settled_transactions, participan
                 for i in [0,1]:
                     event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Added to queue 2')
 
-    return matched_transactions, queue_2,  settled_transactions, event_log
+    return end_matching, start_checking_balance, end_checking_balance, queue_2,  settled_transactions, event_log
 
 def check_balance(settlement_confirmation, instructions_for_processing, participants):
 

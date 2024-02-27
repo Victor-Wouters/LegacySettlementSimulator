@@ -8,7 +8,7 @@ def matching(time, opening_time, queue_1, start_matching, insert_transactions, e
         for _, row_entry in insert_transactions.iterrows():
             row_to_add = pd.DataFrame([row_entry])                                  
             queue_1 = pd.concat([queue_1,row_to_add], ignore_index=True)
-            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Added to queue 1')               
+            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Waiting in queue 1')               
     if time == opening_time:
         queue_1, start_matching, event_log = matching_in_queue(queue_1, start_matching, event_log, time)
     if time >= opening_time: 
@@ -26,7 +26,7 @@ def matching_insertions(insert_transactions, queue_1, start_matching, event_log,
             row_to_add = pd.DataFrame([row_entry])                                  
 
             queue_1 = pd.concat([queue_1,row_to_add], ignore_index=True)            # If empty add this transation to queue 1
-            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Added to queue 1')
+            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Waiting in queue 1')
             continue                                                                # Skip rest
         
         rows_to_remove = []
@@ -50,7 +50,7 @@ def matching_insertions(insert_transactions, queue_1, start_matching, event_log,
         if matched == False:                                                        # If not matched and queue 1 not empty
             row_to_add = pd.DataFrame([row_entry])                                  
             queue_1 = pd.concat([queue_1,row_to_add], ignore_index=True)            # Add transaction to queue 1, waiting to be matched
-            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Added to queue 1')
+            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Waiting in queue 1')
             
     return queue_1, start_matching, event_log
 
@@ -58,7 +58,7 @@ def matching_in_queue(queue_1, start_matching, event_log, time):
     if not queue_1.empty:
         Linkcode_counts = queue_1['Linkcode'].value_counts()                                        # Counting occurrences in Linkcode
         matching_Linkcodes = Linkcode_counts[Linkcode_counts == 2].index                            # Identifying Linkcodes that occur more than twice
-        matched_rows = queue_1[queue_1['Linkcode'].isin(matching_Linkcodes)]                        # Extracting rows with Linkcodes that occur exactly twice
+        matched_rows = queue_1[queue_1['Linkcode'].isin(matching_Linkcodes)].copy()                        # Extracting rows with Linkcodes that occur exactly twice
         matched_rows["Starttime"] = time
         start_matching = pd.concat([start_matching,matched_rows], ignore_index=True)    # Add matched transactions to dataframe
         #for _, row_matched_transactions in matched_rows.iterrows():

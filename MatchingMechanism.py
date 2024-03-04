@@ -2,7 +2,7 @@ import pandas as pd
 import Eventlog
 import datetime
 
-def matching(time, opening_time, queue_1, start_matching, insert_transactions, event_log):
+def matching(time, opening_time, closing_time, queue_1, start_matching, insert_transactions, event_log):
 
     if time < opening_time:
         for _, row_entry in insert_transactions.iterrows():
@@ -11,8 +11,13 @@ def matching(time, opening_time, queue_1, start_matching, insert_transactions, e
             event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Waiting in queue 1')               
     if time == opening_time:
         queue_1, start_matching, event_log = matching_in_queue(queue_1, start_matching, event_log, time)
-    if time >= opening_time: 
+    if time >= opening_time and time < closing_time: 
         queue_1, start_matching, event_log = matching_insertions(insert_transactions, queue_1, start_matching, event_log, time)
+    if time >= closing_time:
+        for _, row_entry in insert_transactions.iterrows():
+            row_to_add = pd.DataFrame([row_entry])                                  
+            queue_1 = pd.concat([queue_1,row_to_add], ignore_index=True)
+            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Waiting in queue 1')
     
     ####### ADD AFTER CLOSE
         

@@ -11,10 +11,10 @@ midnight = datetime.datetime.combine(today, datetime.time.min)
 
 
 #read in participant and account data:
-participants = PartAccData.read_csv_and_create_participants('data\PARTbig.csv') #Dictionary (key:PartID, value:Part Object)
+participants = PartAccData.read_csv_and_create_participants('data\PARTV1.csv') #Dictionary (key:PartID, value:Part Object)
 
 #read in transaction data:
-transactions_entry = TransData.read_TRANS('data\TRANSbig.csv') #Dataframe
+transactions_entry = TransData.read_TRANS('data\TRANSV1.csv') #Dataframe
 
 queue_1 = pd.DataFrame()    # Transations waiting to be matched
 start_matching = pd.DataFrame()   # Transactions matched, not yet settled
@@ -39,14 +39,18 @@ event_log = pd.DataFrame(columns=['TID', 'Starttime', 'Endtime', 'Activity'])   
 transactions_entry['Time'] = transactions_entry['Time'].apply(lambda x: midnight + datetime.timedelta(minutes=x-1))
 start = datetime.datetime.combine(datetime.date.today(), datetime.time.min)
 
-opening_time = start + datetime.timedelta(minutes=600) #50
+opening_time = start + datetime.timedelta(minutes=600)
+closing_time = start + datetime.timedelta(minutes=1140)
 print(opening_time)
+print(closing_time)
 #add closing time
 
 for i in range(86400):   # For-loop through every minute of real-time processing of the business day 86400
 
-    if i % 10000 == 0:
-        print(f"Iteration {i}")
+    if i % 5000 == 0:
+        percent_compleet = round((i/86400)*100)
+        bar = '█' * percent_compleet + '-' * (100 - percent_compleet)
+        print(f'|{bar}| {percent_compleet}% ')
 
     time = start + datetime.timedelta(seconds=i)
     
@@ -54,7 +58,7 @@ for i in range(86400):   # For-loop through every minute of real-time processing
 
     insert_transactions = transactions_entry[transactions_entry['Time']==time]     # Take all the transactions inserted on this minute
 
-    queue_1, start_matching, event_log  = MatchingMechanism.matching(time, opening_time, queue_1, start_matching, insert_transactions, event_log) # Match inserted transactions
+    queue_1, start_matching, event_log  = MatchingMechanism.matching(time, opening_time, closing_time, queue_1, start_matching, insert_transactions, event_log) # Match inserted transactions
     
     end_matching, start_matching, event_log = MatchingMechanism.matching_duration(start_matching, end_matching, time, event_log)
     

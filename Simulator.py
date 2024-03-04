@@ -2,21 +2,25 @@ import PartAccData
 import TransData
 import MatchingMechanism
 import SettlementMechanism
+import Validation
 import pandas as pd
 import pandas as pd
 import datetime
-
-today = datetime.date.today()
-midnight = datetime.datetime.combine(today, datetime.time.min)
-
+import time
 
 #read in participant and account data:
-participants = PartAccData.read_csv_and_create_participants('data\PARTV1.csv') #Dictionary (key:PartID, value:Part Object)
+participants = PartAccData.read_csv_and_create_participants('data\PARTICIPANTS1.csv') #Dictionary (key:PartID, value:Part Object)
 
 #read in transaction data:
-transactions_entry = TransData.read_TRANS('data\TRANSV1.csv') #Dataframe
+transactions_entry = TransData.read_TRANS('data\TRANSACTION1.csv') #Dataframe
+
+queue_received = pd.DataFrame() # Transactions inserted before and after opening
 
 queue_1 = pd.DataFrame()    # Transations waiting to be matched
+
+start_validating = pd.DataFrame()
+end_validating = pd.DataFrame()
+
 start_matching = pd.DataFrame()   # Transactions matched, not yet settled
 end_matching = pd.DataFrame()
 
@@ -36,40 +40,59 @@ queue_2  = pd.DataFrame()   # Matched, but unsettled
 settled_transactions = pd.DataFrame()   # Transations settled and completed
 event_log = pd.DataFrame(columns=['TID', 'Starttime', 'Endtime', 'Activity'])   # Event log with all activities
 
-transactions_entry['Time'] = transactions_entry['Time'].apply(lambda x: midnight + datetime.timedelta(minutes=x-1))
-start = datetime.datetime.combine(datetime.date.today(), datetime.time.min)
 
-opening_time = start + datetime.timedelta(minutes=600)
-closing_time = start + datetime.timedelta(minutes=1140)
-print(opening_time)
-print(closing_time)
-#add closing time
+earliest_datetime = transactions_entry['Time'].min()
+earliest_datetime = earliest_datetime.date()
+start = earliest_datetime
 
-for i in range(86400):   # For-loop through every minute of real-time processing of the business day 86400
+latest_datetime = transactions_entry['Time'].max()
+latest_datetime = latest_datetime + datetime.timedelta(days=1)
+latest_datetime = latest_datetime.date()
+end = latest_datetime
 
-    if i % 5000 == 0:
-        percent_compleet = round((i/86400)*100)
+midnight = datetime.time(0,0,0)
+start = datetime.datetime.combine(start, midnight)
+end = datetime.datetime.combine(end, midnight)
+total_seconds = int((end - start).total_seconds())
+
+
+opening_time = datetime.time(10,0,0)
+closing_time = datetime.time(19,0,0)
+
+
+for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400
+
+    if i % 8640 == 0:
+        percent_compleet = round((i/total_seconds)*100)
         bar = '█' * percent_compleet + '-' * (100 - percent_compleet)
-        print(f'|{bar}| {percent_compleet}% ')
+        print(f'\r|{bar}| {percent_compleet}% ', end='')
 
     time = start + datetime.timedelta(seconds=i)
-    
+
     modified_accounts = dict() # Keep track of the accounts modified in this minute to use in queue 2 
 
     insert_transactions = transactions_entry[transactions_entry['Time']==time]     # Take all the transactions inserted on this minute
 
-    queue_1, start_matching, event_log  = MatchingMechanism.matching(time, opening_time, closing_time, queue_1, start_matching, insert_transactions, event_log) # Match inserted transactions
+    end_validating, start_validating, event_log = Validation.validating_duration(insert_transactions, start_validating, end_validating, time, event_log)
     
+    queue_received, queue_1, start_matching, end_validating, event_log  = MatchingMechanism.matching(time, opening_time, closing_time, queue_received, queue_1, start_matching, end_validating, event_log) # Match inserted transactions
+
     end_matching, start_matching, event_log = MatchingMechanism.matching_duration(start_matching, end_matching, time, event_log)
     
-    end_matching, start_checking_balance, end_checking_balance, start_settlement_execution, end_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.settle(time, end_matching, start_checking_balance, end_checking_balance, start_settlement_execution, end_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts) # Settle matched transactions
+    time_hour = time.time()
+    if time_hour >= opening_time and time_hour < closing_time: # Guarantee closed
+        end_matching, start_checking_balance, end_checking_balance, start_settlement_execution, end_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.settle(time, end_matching, start_checking_balance, end_checking_balance, start_settlement_execution, end_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts) # Settle matched transactions
     
-    start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.retry_settle(time, start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts)
-
+        start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.retry_settle(time, start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts)
+    if time_hour == closing_time:       # Empty queue 1 at close and put in instructions received
+        queue_received = pd.concat([queue_received,queue_1], ignore_index=True)
+        queue_1 = pd.DataFrame(columns=queue_1.columns)
 
 
 print("queue 1:")
 print(queue_1)
+print("queue received:")
+print(queue_received)
 print("matched:")
 print(start_matching)
 print("settled:")

@@ -8,6 +8,8 @@ import pandas as pd
 import datetime
 import time
 
+start_time = datetime.datetime.now()
+print("Start Time:", start_time.strftime('%Y-%m-%d %H:%M:%S'))
 #read in participant and account data:
 participants = PartAccData.read_csv_and_create_participants('data\PARTICIPANTS1.csv') #Dictionary (key:PartID, value:Part Object)
 
@@ -85,8 +87,7 @@ for i in range(total_seconds):   # For-loop through every minute of real-time pr
     
         start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.retry_settle(time, start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts)
     if time_hour == closing_time:       # Empty queue 1 at close and put in instructions received
-        queue_received = pd.concat([queue_received,queue_1], ignore_index=True)
-        queue_1 = pd.DataFrame(columns=queue_1.columns)
+        queue_received, queue_1, event_log = MatchingMechanism.clear_queue_unmatched(queue_received, queue_1, time, event_log)
 
 
 print("queue 1:")
@@ -105,4 +106,7 @@ print(event_log)
 
 event_log.to_csv('eventlogtest.csv', index=False, sep = ';')
 
-
+end_time = datetime.datetime.now()
+print("End Time:", end_time.strftime('%Y-%m-%d %H:%M:%S'))
+duration = end_time - start_time
+print("Execution Duration:", duration)

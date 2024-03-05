@@ -14,6 +14,7 @@ def matching(time, opening_time, closing_time, queue_received, queue_1, start_ma
             event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Waiting in queue received')               
     if time_hour == opening_time:
         queue_received, start_matching, event_log = matching_in_queue(queue_received, start_matching, event_log, time)
+        queue_received, queue_1, event_log = clear_queue_received(queue_received, queue_1, time, event_log)
     if time_hour >= opening_time and time_hour < closing_time: 
         queue_received, queue_1, start_matching, event_log = matching_insertions(insert_transactions, queue_received, queue_1, start_matching, event_log, time)
     if time_hour >= closing_time:
@@ -34,26 +35,8 @@ def matching_insertions(insert_transactions, queue_received, queue_1, start_matc
             row_to_add = pd.DataFrame([row_entry])                                  
 
             queue_1 = pd.concat([queue_1,row_to_add], ignore_index=True)            # If empty add this transation to queue 1
-            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Waiting in queue 1')
+            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Waiting in queue unmatched')
             continue                                                                # Skip rest
-        
-        if not queue_received.empty:
-            rows_to_remove = []
-
-            for index, row_received_1 in queue_received.iterrows():                     # Iterate through queue 1
-                if row_entry['Linkcode'] == row_received_1['Linkcode']:                 # Check if inserted transaction matches a waiting transaction
-                    matched = True                                                      # If true:
-                    first_transaction = pd.DataFrame([row_received_1])
-                    first_transaction["Starttime"] = time
-                    second_transaction = pd.DataFrame([row_entry])                      # Add matched transaction to matched_transactions
-                    second_transaction["Starttime"] = time
-                    start_matching = pd.concat([start_matching,first_transaction], ignore_index=True)
-                    start_matching = pd.concat([start_matching,second_transaction], ignore_index=True)
-                    
-                    rows_to_remove.append(index)                                        # Remember the transaction of queue 1
-
-            queue_received = queue_received.drop(rows_to_remove)                        # If matched transactions, remove the matched transaction from queue 1
-
 
         rows_to_remove = []
 
@@ -74,7 +57,7 @@ def matching_insertions(insert_transactions, queue_received, queue_1, start_matc
         if matched == False:                                                        # If not matched and queue 1 not empty
             row_to_add = pd.DataFrame([row_entry])                                  
             queue_1 = pd.concat([queue_1,row_to_add], ignore_index=True)            # Add transaction to queue 1, waiting to be matched
-            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Waiting in queue 1')
+            event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_to_add['TID'], activity='Waiting in queue unmatched')
             
     return queue_received, queue_1, start_matching, event_log
 
@@ -106,3 +89,19 @@ def matching_duration(start_matching, end_matching, current_time, event_log):
         start_matching = start_matching.drop(rows_to_remove)
 
     return end_matching, start_matching, event_log
+
+def clear_queue_unmatched(queue_received, queue_1, time, event_log):
+    queue_received = pd.concat([queue_received,queue_1], ignore_index=True)
+    for _, row_queue_1 in queue_1.iterrows():
+        event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_queue_1['TID'], activity='Waiting in queue received')
+    queue_1 = pd.DataFrame(columns=queue_1.columns)
+
+    return queue_received, queue_1, event_log
+
+def clear_queue_received(queue_received, queue_1, time, event_log):
+    queue_1 = pd.concat([queue_1,queue_received], ignore_index=True)
+    for _, row_queue_received in queue_received.iterrows():
+        event_log = Eventlog.Add_to_eventlog(event_log, time, time, row_queue_received['TID'], activity='Waiting in queue unmatched')
+    queue_received = pd.DataFrame(columns=queue_received.columns)
+
+    return queue_received, queue_1, event_log

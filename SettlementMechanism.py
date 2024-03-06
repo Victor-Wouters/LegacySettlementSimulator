@@ -45,7 +45,7 @@ def settle(time, end_matching, start_checking_balance, end_checking_balance, sta
                 queue_2 = pd.concat([queue_2,instructions_for_processing], ignore_index=True)
                 # log in eventlog
                 for i in [0,1]:
-                    event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Waiting in queue 2')
+                    event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Waiting in queue unsettled')
     rows_to_remove = []
     for index, instruction_executing in start_settlement_execution.iterrows():
         if time == (instruction_executing["Starttime"] + datetime.timedelta(seconds=2)):
@@ -145,13 +145,13 @@ def retry_settle(time, start_again_checking_balance, end_again_checking_balance,
                 queue_2 = pd.concat([queue_2,instructions_for_processing], ignore_index=True)   # if settlement rejected, move transactions to queue 2
                 # log in eventlog
                 for i in [0,1]:
-                        event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Waiting again in queue 2')    
+                        event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Waiting in queue unsettled') #Waiting again in queue unsettled   
                      
     rows_to_remove = []
     for index, instruction_executing in start_again_settlement_execution.iterrows():
         if time == (instruction_executing["Starttime"] + datetime.timedelta(seconds=2)):
             instruction_ended_executing = pd.DataFrame([instruction_executing])
-            event_log = Eventlog.Add_to_eventlog(event_log, instruction_executing["Starttime"], time, instruction_ended_executing['TID'], activity='Settling from queue 2')
+            event_log = Eventlog.Add_to_eventlog(event_log, instruction_executing["Starttime"], time, instruction_ended_executing['TID'], activity='Settling') #Settling from queue unsettled
             end_again_settlement_execution = pd.concat([end_again_settlement_execution,instruction_ended_executing], ignore_index=True)
             rows_to_remove.append(index)
     start_again_settlement_execution = start_again_settlement_execution.drop(rows_to_remove)

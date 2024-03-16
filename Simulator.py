@@ -3,6 +3,7 @@ import TransData
 import MatchingMechanism
 import SettlementMechanism
 import Validation
+import StatisticsOutput
 import pandas as pd
 import pandas as pd
 import datetime
@@ -39,7 +40,7 @@ start_again_settlement_execution = pd.DataFrame()
 end_again_settlement_execution = pd.DataFrame()
 
 queue_2  = pd.DataFrame()   # Matched, but unsettled
-settled_transactions = pd.DataFrame()   # Transations settled and completed
+settled_transactions = pd.DataFrame()   # Transactions settled and completed
 event_log = pd.DataFrame(columns=['TID', 'Starttime', 'Endtime', 'Activity'])   # Event log with all activities
 
 
@@ -58,16 +59,16 @@ end = datetime.datetime.combine(end, midnight)
 total_seconds = int((end - start).total_seconds())
 
 
-opening_time = datetime.time(10,0,0)
-closing_time = datetime.time(19,0,0)
+opening_time = datetime.time(0,0,0)
+closing_time = datetime.time(23,59,59)
 
 
 for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400
 
     if i % 8640 == 0:
-        percent_compleet = round((i/total_seconds)*100)
-        bar = '█' * percent_compleet + '-' * (100 - percent_compleet)
-        print(f'\r|{bar}| {percent_compleet}% ', end='')
+        percent_complete = round((i/total_seconds)*100)
+        bar = '█' * percent_complete + '-' * (100 - percent_complete)
+        print(f'\r|{bar}| {percent_complete}% ', end='')
 
     time = start + datetime.timedelta(seconds=i)
 
@@ -103,6 +104,7 @@ print(queue_2)
 print("event log:")
 print(event_log)
 
+StatisticsOutput.calculate_statistics(transactions_entry, settled_transactions)
 
 event_log.to_csv('eventlogtest.csv', index=False, sep = ';')
 

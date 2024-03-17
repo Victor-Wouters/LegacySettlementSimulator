@@ -4,18 +4,23 @@ import MatchingMechanism
 import SettlementMechanism
 import Validation
 import StatisticsOutput
+import Generator
 import pandas as pd
 import pandas as pd
 import datetime
 import time
 
+Generator.generate_data()
+
 start_time = datetime.datetime.now()
 print("Start Time:", start_time.strftime('%Y-%m-%d %H:%M:%S'))
+
 #read in participant and account data:
 participants = PartAccData.read_csv_and_create_participants('data\PARTICIPANTS1.csv') #Dictionary (key:PartID, value:Part Object)
 
 #read in transaction data:
 transactions_entry = TransData.read_TRANS('data\TRANSACTION1.csv') #Dataframe
+
 
 queue_received = pd.DataFrame() # Transactions inserted before and after opening
 

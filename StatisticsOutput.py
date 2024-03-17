@@ -1,8 +1,7 @@
 import pandas as pd
 
 
-def calculate_statistics(transactions_entry, settled_transactions):
-    statistics = pd.DataFrame()
+def calculate_statistics(transactions_entry, settled_transactions, statistics):
 
     total_input_value = transactions_entry['Value'].sum()
     total_settled_value = settled_transactions['Value'].sum()
@@ -12,9 +11,12 @@ def calculate_statistics(transactions_entry, settled_transactions):
     print(total_settled_value)
     print("Settlement efficiency:")
     print(settlement_efficiency)
-    statistics['Settlement efficiency'] = [settlement_efficiency]
+    
 
-    statistics.to_csv('statistics.csv', index=False, sep = ';')
+    new_row = pd.DataFrame({'Settlement efficiency': [settlement_efficiency]})
+    statistics = pd.concat([statistics, new_row], ignore_index=True, axis=0)
 
-    return
+    #statistics.to_csv('statistics.csv', index=False, sep = ';')
+
+    return statistics
 

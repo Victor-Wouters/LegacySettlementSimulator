@@ -4,7 +4,7 @@ import MatchingMechanism
 import SettlementMechanism
 import Validation
 import StatisticsOutput
-import Generator
+#import Generator
 import pandas as pd
 import pandas as pd
 import datetime
@@ -12,9 +12,9 @@ import time
 
 statistics = pd.DataFrame(columns=['Settlement efficiency'])
 
-for j in range(0,5):
+for j in range(0,1):
 
-    Generator.generate_data()
+    #Generator.generate_data()
 
     start_time = datetime.datetime.now()
     print("Start Time:", start_time.strftime('%Y-%m-%d %H:%M:%S'))
@@ -68,8 +68,10 @@ for j in range(0,5):
     total_seconds = int((end - start).total_seconds())
 
 
-    opening_time = datetime.time(9,0,0)
-    closing_time = datetime.time(20,30,00)
+    opening_time = datetime.time(1,30,0)
+    print(opening_time)
+    closing_time = datetime.time(19,30,00)
+    print(closing_time)
 
 
     for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400

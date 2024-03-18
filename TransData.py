@@ -8,6 +8,3 @@ def read_TRANS(filename):
 
     return DF_TRANS
 
-#transactions_entry = read_TRANS('data\TRANS.csv')
-
-#print(transactions_entry)

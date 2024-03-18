@@ -99,7 +99,6 @@ def keep_track_modified_accounts(instructions_for_processing, modified_accounts)
         
         modified_accounts[instruction["ToParticipantId"]] = instruction["ToAccountId"]
         
-
     return modified_accounts
 
 def retry_settle(time, start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts): 

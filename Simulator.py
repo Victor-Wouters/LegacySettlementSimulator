@@ -25,9 +25,12 @@ for j in range(0,1):
     #read in transaction data:
     transactions_entry = TransData.read_TRANS('data\TRANSACTION1.csv') #Dataframe of all transactions
 
-    part_ids = list(participants.keys()) # Keep in mind to have the correct format when reading participants in!
-    balances_history_monetary = pd.DataFrame(part_ids, columns=['PartID-monetary'])
-    balances_history_securities = pd.DataFrame(part_ids, columns=['PartID-securities'])
+     # Keep in mind to have the correct format when reading participants in!
+    balances_history = pd.DataFrame(columns=['PartID', "Account ID"])
+    for i, value in participants.items():
+        for j in transactions_entry['FromAccountId'].unique():
+            new_row = pd.DataFrame([[value.get_part_id(), value.get_account(j).get_account_id()]],columns=['PartID', 'Account ID'])
+            balances_history = pd.concat([balances_history, new_row], ignore_index=True)
 
     queue_received = pd.DataFrame() # Transactions inserted before and after opening
 
@@ -105,10 +108,10 @@ for j in range(0,1):
             queue_received, queue_1, event_log = MatchingMechanism.clear_queue_unmatched(queue_received, queue_1, time, event_log)
         
         if i % 900 == 0:
-            balances_status_monetary, balances_status_securities = LogPartData.get_partacc_data(participants, transactions_entry)
+            balances_status = LogPartData.get_partacc_data(participants, transactions_entry)
             time_hour_str = time_hour.strftime('%H:%M:%S')
-            balances_history_monetary[time_hour_str] = balances_status_monetary['Account Balance']
-            balances_history_securities[time_hour_str] = balances_status_securities['Account Balance']
+            balances_history[time_hour_str] = balances_status['Account Balance']
+            
             
 
     print("queue 1:")
@@ -135,7 +138,6 @@ for j in range(0,1):
 
 statistics.to_csv('statistics.csv', index=False, sep = ';')
 
-balances_history_securities = balances_history_securities.astype(int)
-balances_history_monetary = balances_history_monetary.astype(int)
-balances_history_securities.to_csv('securities.csv', index=False, sep = ';')
-balances_history_monetary.to_csv('monetary.csv', index=False, sep = ';')
+balances_history = balances_history.astype(int)
+balances_history.to_csv('balanceHistory.csv', index=False, sep = ';')
+

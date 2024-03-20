@@ -10,7 +10,6 @@ def settle(time, end_matching, start_checking_balance, end_checking_balance, sta
         for linkcode in matched_linkcodes:
             instructions_for_processing = end_matching[end_matching['Linkcode'] == linkcode].copy()
             end_matching = end_matching[end_matching['Linkcode'] != linkcode]
-            
             instructions_for_processing["Starttime"] = time
             # Save for 2 sec before checking
             start_checking_balance = pd.concat([start_checking_balance,instructions_for_processing], ignore_index=True)

@@ -4,8 +4,8 @@ import MatchingMechanism
 import SettlementMechanism
 import Validation
 import StatisticsOutput
+import LogPartData
 #import Generator
-import pandas as pd
 import pandas as pd
 import datetime
 import time
@@ -23,8 +23,11 @@ for j in range(0,1):
     participants = PartAccData.read_csv_and_create_participants('data\PARTICIPANTS1.csv') #Dictionary (key:PartID, value:Part Object)
 
     #read in transaction data:
-    transactions_entry = TransData.read_TRANS('data\TRANSACTION1.csv') #Dataframe
+    transactions_entry = TransData.read_TRANS('data\TRANSACTION1.csv') #Dataframe of all transactions
 
+    part_ids = list(participants.keys()) # Keep in mind to have the correct format when reading participants in!
+    balances_history_monetary = pd.DataFrame(part_ids, columns=['PartID-monetary'])
+    balances_history_securities = pd.DataFrame(part_ids, columns=['PartID-securities'])
 
     queue_received = pd.DataFrame() # Transactions inserted before and after opening
 
@@ -100,7 +103,13 @@ for j in range(0,1):
             start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.retry_settle(time, start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts)
         if time_hour == closing_time:       # Empty queue 1 at close and put in instructions received
             queue_received, queue_1, event_log = MatchingMechanism.clear_queue_unmatched(queue_received, queue_1, time, event_log)
-
+        
+        if i % 900 == 0:
+            balances_status_monetary, balances_status_securities = LogPartData.get_partacc_data(participants, transactions_entry)
+            time_hour_str = time_hour.strftime('%H:%M:%S')
+            balances_history_monetary[time_hour_str] = balances_status_monetary['Account Balance']
+            balances_history_securities[time_hour_str] = balances_status_securities['Account Balance']
+            
 
     print("queue 1:")
     print(queue_1)
@@ -125,3 +134,8 @@ for j in range(0,1):
     print("Execution Duration:", duration)
 
 statistics.to_csv('statistics.csv', index=False, sep = ';')
+
+balances_history_securities = balances_history_securities.astype(int)
+balances_history_monetary = balances_history_monetary.astype(int)
+balances_history_securities.to_csv('securities.csv', index=False, sep = ';')
+balances_history_monetary.to_csv('monetary.csv', index=False, sep = ';')

@@ -5,6 +5,7 @@ import SettlementMechanism
 import Validation
 import StatisticsOutput
 import LogPartData
+import SaveQueues
 #import Generator
 import pandas as pd
 import datetime
@@ -20,10 +21,10 @@ for j in range(0,1):
     print("Start Time:", start_time.strftime('%Y-%m-%d %H:%M:%S'))
 
     #read in participant and account data:
-    participants = PartAccData.read_csv_and_create_participants('data\PARTICIPANTS1.csv') #Dictionary (key:PartID, value:Part Object)
+    participants = PartAccData.read_csv_and_create_participants('InputData\PARTICIPANTS1.csv') #Dictionary (key:PartID, value:Part Object)
 
     #read in transaction data:
-    transactions_entry = TransData.read_TRANS('data\TRANSACTION1.csv') #Dataframe of all transactions
+    transactions_entry = TransData.read_TRANS('InputData\TRANSACTION1.csv') #Dataframe of all transactions
 
      # Keep in mind to have the correct format when reading participants in!
     balances_history = pd.DataFrame(columns=['PartID', "Account ID"])
@@ -31,6 +32,7 @@ for j in range(0,1):
         for j in transactions_entry['FromAccountId'].unique():
             new_row = pd.DataFrame([[value.get_part_id(), value.get_account(j).get_account_id()]],columns=['PartID', 'Account ID'])
             balances_history = pd.concat([balances_history, new_row], ignore_index=True)
+            
 
     queue_received = pd.DataFrame() # Transactions inserted before and after opening
 
@@ -79,8 +81,8 @@ for j in range(0,1):
     closing_time = datetime.time(19,30,00)
     print(closing_time)
 
-
-    for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400
+    for i in range(10000): #for debugging
+    #for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400
 
         if i % 8640 == 0:
             percent_complete = round((i/total_seconds)*100)
@@ -103,7 +105,7 @@ for j in range(0,1):
         if time_hour >= opening_time and time_hour < closing_time: # Guarantee closed
             end_matching, start_checking_balance, end_checking_balance, start_settlement_execution, end_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.settle(time, end_matching, start_checking_balance, end_checking_balance, start_settlement_execution, end_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts) # Settle matched transactions
         
-            start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.retry_settle(time, start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts)
+            start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.atomic_retry_settle(time, start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts)
         if time_hour == closing_time:       # Empty queue 1 at close and put in instructions received
             queue_received, queue_1, event_log = MatchingMechanism.clear_queue_unmatched(queue_received, queue_1, time, event_log)
         
@@ -111,33 +113,20 @@ for j in range(0,1):
             balances_status = LogPartData.get_partacc_data(participants, transactions_entry)
             time_hour_str = time_hour.strftime('%H:%M:%S')
             balances_history[time_hour_str] = balances_status['Account Balance']
-            
-            
 
-    print("queue 1:")
-    print(queue_1)
-    print("queue received:")
-    print(queue_received)
-    print("matched:")
-    print(start_matching)
-    print("settled:")
-    print(settled_transactions)
-    print("queue 2:")
-    print(queue_2)
-    print("event log:")
-    print(event_log)
-
+    SaveQueues.save_queues(queue_1,queue_received,settled_transactions,queue_2)
     statistics = StatisticsOutput.calculate_statistics(transactions_entry, settled_transactions, statistics)
 
-    event_log.to_csv(f'eventlog{j}.csv', index=False, sep = ';')
+    #event_log.to_csv(f'eventlog{j}.csv', index=False, sep = ';')
+    event_log.to_csv('eventlog\\eventlog.csv', index=False, sep = ';')
+
+    LogPartData.balances_history_calculations(balances_history, participants)
 
     end_time = datetime.datetime.now()
     print("End Time:", end_time.strftime('%Y-%m-%d %H:%M:%S'))
     duration = end_time - start_time
     print("Execution Duration:", duration)
+    
 
-statistics.to_csv('statistics.csv', index=False, sep = ';')
-
-balances_history = balances_history.astype(int)
-balances_history.to_csv('balanceHistory.csv', index=False, sep = ';')
+statistics.to_csv('statistics\\statistics.csv', index=False, sep = ';')
 

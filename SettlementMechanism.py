@@ -141,9 +141,8 @@ def retry_settle(time, start_again_checking_balance, end_again_checking_balance,
                 start_again_settlement_execution = pd.concat([start_again_settlement_execution,instructions_for_processing], ignore_index=True)
             else: 
                 queue_2 = pd.concat([queue_2,instructions_for_processing], ignore_index=True)   # if settlement rejected, move transactions to queue 2
-                # log in eventlog
-                for i in [0,1]:
-                        event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Waiting in queue unsettled') #Waiting again in queue unsettled   
+                for i in [0,1]: # log in eventlog
+                    event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Waiting in queue unsettled') #Waiting again in queue unsettled   
                      
     rows_to_remove = []
     for index, instruction_executing in start_again_settlement_execution.iterrows():
@@ -210,7 +209,7 @@ def atomic_retry_settle(time, start_again_checking_balance, end_again_checking_b
                 queue_2 = pd.concat([queue_2,instructions_for_processing], ignore_index=True)   # if settlement rejected, move transactions to queue 2
                 # log in eventlog
                 for i in [0,1]:
-                        event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Waiting in queue unsettled') #Waiting again in queue unsettled   
+                    event_log = Eventlog.Add_to_eventlog(event_log, time, time, instructions_for_processing['TID'].iloc[i], activity='Waiting in queue unsettled') #Waiting again in queue unsettled   
                      
 
     return start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2,  settled_transactions, event_log

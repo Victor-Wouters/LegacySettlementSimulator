@@ -35,6 +35,7 @@ for j in range(0,1):
     
     SE_over_time = pd.DataFrame()
     cumulative_inserted = pd.DataFrame()
+    total_unsettled_value_over_time = pd.DataFrame()
 
     queue_received = pd.DataFrame() # Transactions inserted before and after opening
 
@@ -83,7 +84,7 @@ for j in range(0,1):
     closing_time = datetime.time(19,30,00)
     print(closing_time)
 
-    #for i in range(10000): #for debugging
+    #for i in range(5000): #for debugging
     for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400
 
         if i % 8640 == 0:
@@ -119,10 +120,17 @@ for j in range(0,1):
             balances_history[time_hour_str] = balances_status['Account Balance']
             SE_timepoint = StatisticsOutput.calculate_SE_over_time(settled_transactions, cumulative_inserted)
             SE_over_time[time_hour_str] = SE_timepoint['Settlement efficiency']
+            total_unsettled_value_timepoint = StatisticsOutput.calculate_total_value_unsettled(queue_2)
+            total_unsettled_value_over_time[time_hour_str] = total_unsettled_value_timepoint['Total value unsettled']
         if i == (total_seconds-1):
+            balances_status = LogPartData.get_partacc_data(participants, transactions_entry)
             time_hour_str = time_hour.strftime('%H:%M:%S')
+            balances_history[time_hour_str] = balances_status['Account Balance']
             SE_timepoint = StatisticsOutput.calculate_SE_over_time(settled_transactions, cumulative_inserted)
             SE_over_time[time_hour_str] = SE_timepoint['Settlement efficiency']
+            total_unsettled_value_timepoint = StatisticsOutput.calculate_total_value_unsettled(queue_2)
+            total_unsettled_value_over_time[time_hour_str] = total_unsettled_value_timepoint['Total value unsettled']
+
 
     SaveQueues.save_queues(queue_1,queue_received,settled_transactions,queue_2)
     statistics = StatisticsOutput.calculate_total_SE(transactions_entry, settled_transactions, statistics)
@@ -138,6 +146,7 @@ for j in range(0,1):
     duration = end_time - start_time
     print("Execution Duration:", duration)
     
+total_unsettled_value_over_time.to_csv('statistics\\total_unsettled_value_over_time.csv', index=False, sep = ';')
 SE_over_time.to_csv('statistics\\SE_over_time.csv', index=False, sep = ';')
 statistics.to_csv('statistics\\statistics.csv', index=False, sep = ';')
 

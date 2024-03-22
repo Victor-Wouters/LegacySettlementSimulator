@@ -32,7 +32,9 @@ for j in range(0,1):
         for j in transactions_entry['FromAccountId'].unique():
             new_row = pd.DataFrame([[value.get_part_id(), value.get_account(j).get_account_id()]],columns=['PartID', 'Account ID'])
             balances_history = pd.concat([balances_history, new_row], ignore_index=True)
-            
+    
+    SE_over_time = pd.DataFrame()
+    cumulative_inserted = pd.DataFrame()
 
     queue_received = pd.DataFrame() # Transactions inserted before and after opening
 
@@ -95,6 +97,8 @@ for j in range(0,1):
 
         insert_transactions = transactions_entry[transactions_entry['Time']==time]     # Take all the transactions inserted on this minute
 
+        cumulative_inserted = pd.concat([cumulative_inserted,insert_transactions], ignore_index=True)
+        
         end_validating, start_validating, event_log = Validation.validating_duration(insert_transactions, start_validating, end_validating, time, event_log)
         
         queue_received, queue_1, start_matching, end_validating, event_log  = MatchingMechanism.matching(time, opening_time, closing_time, queue_received, queue_1, start_matching, end_validating, event_log) # Match inserted transactions
@@ -113,9 +117,16 @@ for j in range(0,1):
             balances_status = LogPartData.get_partacc_data(participants, transactions_entry)
             time_hour_str = time_hour.strftime('%H:%M:%S')
             balances_history[time_hour_str] = balances_status['Account Balance']
+            SE_timepoint = StatisticsOutput.calculate_SE_over_time(settled_transactions, cumulative_inserted)
+            SE_over_time[time_hour_str] = SE_timepoint['Settlement efficiency']
+        if i == (total_seconds-1):
+            time_hour_str = time_hour.strftime('%H:%M:%S')
+            SE_timepoint = StatisticsOutput.calculate_SE_over_time(settled_transactions, cumulative_inserted)
+            SE_over_time[time_hour_str] = SE_timepoint['Settlement efficiency']
 
     SaveQueues.save_queues(queue_1,queue_received,settled_transactions,queue_2)
-    statistics = StatisticsOutput.calculate_statistics(transactions_entry, settled_transactions, statistics)
+    statistics = StatisticsOutput.calculate_total_SE(transactions_entry, settled_transactions, statistics)
+    StatisticsOutput.calculate_SE_per_participant(transactions_entry, settled_transactions)
 
     #event_log.to_csv(f'eventlog{j}.csv', index=False, sep = ';')
     event_log.to_csv('eventlog\\eventlog.csv', index=False, sep = ';')
@@ -127,6 +138,6 @@ for j in range(0,1):
     duration = end_time - start_time
     print("Execution Duration:", duration)
     
-
+SE_over_time.to_csv('statistics\\SE_over_time.csv', index=False, sep = ';')
 statistics.to_csv('statistics\\statistics.csv', index=False, sep = ';')
 

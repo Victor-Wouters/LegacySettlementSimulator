@@ -22,19 +22,28 @@ def get_partacc_data(participants, transactions_entry):
 
 def balances_history_calculations(balances_history, participants):
      
-     balances_history = balances_history.applymap(lambda x: int(x))
-     balances_history.to_csv('balanceHistoryCSV\\BalanceHistory.csv', index=False, sep = ';')
+    balances_history = balances_history.applymap(lambda x: int(x))
+    balances_history.to_csv('balanceHistoryCSV\\BalanceHistory.csv', index=False, sep = ';')
 
-     #first_two_columns = balances_history.iloc[:, :2]
-     remaining_columns = balances_history.iloc[:, 2:].applymap(lambda x: x if x < 0 else 0)
-     #modified_balances_history = pd.concat([first_two_columns, remaining_columns], axis=1)
-     total_credit = remaining_columns.sum()
-     total_credit_dataframe = total_credit.to_frame().transpose()
-     total_credit_dataframe = total_credit_dataframe.abs()
-     total_credit_dataframe.to_csv('balanceHistoryCSV\\Total_credit.csv', index=False, sep = ';')
+    #first_two_columns = balances_history.iloc[:, :2]
+    remaining_columns = balances_history.iloc[:, 2:].applymap(lambda x: x if x < 0 else 0)
+    #modified_balances_history = pd.concat([first_two_columns, remaining_columns], axis=1)
+    total_credit = remaining_columns.sum()
+    total_credit_dataframe = total_credit.to_frame().transpose()
+    total_credit_dataframe = total_credit_dataframe.abs()
+    credit_plot = total_credit_dataframe.iloc[0]
+    plt.figure(figsize=(20, 7))
+    plt.plot(credit_plot.index, credit_plot.values)
+    plt.title('Total credit')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    plt.savefig(f'balanceHistoryPNG\\Total_credit.png')
+    total_credit_dataframe.to_csv('balanceHistoryCSV\\Total_credit.csv', index=False, sep = ';')
 
-     dfs = {part_id: group for part_id, group in balances_history.groupby('PartID')}
-     for part_id, dataframe in dfs.items():
+    dfs = {part_id: group for part_id, group in balances_history.groupby('PartID')}
+    for part_id, dataframe in dfs.items():
         credit_limit_row = [None, None] + [-(participants[str(part_id)].get_account('0').get_credit_limit())] * (len(dataframe.columns) - 2)
         dataframe.loc['credit limit'] = credit_limit_row
         dataframe = dataframe.applymap(lambda x: int(x) if pd.notnull(x) and x != '' else '')

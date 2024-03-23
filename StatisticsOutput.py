@@ -1,7 +1,8 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
-def calculate_total_SE(transactions_entry, settled_transactions, statistics):
+def calculate_total_SE(transactions_entry, settled_transactions, final_settlement_efficiency):
 
     if not settled_transactions.empty:
 
@@ -13,11 +14,11 @@ def calculate_total_SE(transactions_entry, settled_transactions, statistics):
         
 
         new_row = pd.DataFrame({'Settlement efficiency': [settlement_efficiency]})
-        statistics = pd.concat([statistics, new_row], ignore_index=True, axis=0)
+        final_settlement_efficiency = pd.concat([final_settlement_efficiency, new_row], ignore_index=True, axis=0)
 
     #statistics.to_csv('statistics.csv', index=False, sep = ';')
 
-    return statistics
+    return final_settlement_efficiency
 
 def calculate_SE_per_participant(transactions_entry,settled_transactions):
 
@@ -27,7 +28,20 @@ def calculate_SE_per_participant(transactions_entry,settled_transactions):
         input_part = transactions_entry.groupby('FromParticipantId')['Value'].sum().reset_index()
         merged_df = pd.merge(settled_part, input_part, on='FromParticipantId', suffixes=('_settled', '_input'))
         merged_df['settled_input_ratio'] = merged_df['Value_settled'] / merged_df['Value_input']
-        merged_df.to_csv('statistics\\SE_per_participant.csv', index=False, sep = ';')
+        #merged_df['settled_input_ratio'] = merged_df['settled_input_ratio'].apply(lambda x: "{:.2%}".format(x))
+        plt.figure(figsize=(20, 7))
+        bars = plt.bar(merged_df['FromParticipantId'], merged_df['settled_input_ratio'], color='limegreen')
+        for bar in bars:
+            yval = bar.get_height()
+            plt.text(bar.get_x() + bar.get_width()/2, yval + 0.005, "{:.2%}".format(yval), ha='center', va='bottom')
+        plt.title('Settlement efficiency for each Participant')
+        plt.xlabel('Participant')
+        plt.ylabel('Settlement efficiency')
+        plt.xticks(merged_df['FromParticipantId'])
+        plt.grid(axis='y')
+        plt.tight_layout()
+        plt.savefig(f'statisticsPNG\\Settlement_efficiency_for_each_Participant.png')
+        merged_df.to_csv('statisticsCSV\\SE_per_participant.csv', index=False, sep = ';')
 
 def calculate_SE_over_time(settled_transactions, cumulative_inserted):
 
@@ -60,3 +74,29 @@ def calculate_total_value_unsettled(queue_2):
         total_unsettled_value_timepoint = pd.concat([total_unsettled_value_timepoint, new_row], ignore_index=True)
 
     return total_unsettled_value_timepoint
+
+def statistics_generate_output(total_unsettled_value_over_time, SE_over_time, statistics):
+
+    unsettled_plot = total_unsettled_value_over_time.iloc[0]
+    plt.figure(figsize=(20, 7))
+    plt.plot(unsettled_plot.index, unsettled_plot.values)
+    plt.title('Total unsettled value over time')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    plt.savefig(f'statisticsPNG\\total_unsettled_value_over_time.png')
+
+    SE_plot = SE_over_time.iloc[0]
+    plt.figure(figsize=(20, 7))
+    plt.plot(SE_plot.index, SE_plot.values)
+    plt.title('Cumulative settlement efficiency over time')
+    plt.xlabel('Time')
+    plt.ylabel('Value')
+    plt.xticks(rotation=90)
+    plt.tight_layout()
+    plt.savefig(f'statisticsPNG\\SE_over_time.png')
+
+    total_unsettled_value_over_time.to_csv('statisticsCSV\\total_unsettled_value_over_time.csv', index=False, sep = ';')
+    SE_over_time.to_csv('statisticsCSV\\SE_over_time.csv', index=False, sep = ';')
+    statistics.to_csv('statisticsCSV\\statistics.csv', index=False, sep = ';')

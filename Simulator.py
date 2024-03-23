@@ -11,7 +11,7 @@ import pandas as pd
 import datetime
 import time
 
-statistics = pd.DataFrame(columns=['Settlement efficiency'])
+final_settlement_efficiency = pd.DataFrame(columns=['Settlement efficiency'])
 
 for j in range(0,1):
 
@@ -84,8 +84,8 @@ for j in range(0,1):
     closing_time = datetime.time(19,30,00)
     print(closing_time)
 
-    #for i in range(5000): #for debugging
-    for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400
+    for i in range(10000): #for debugging
+    #for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400
 
         if i % 8640 == 0:
             percent_complete = round((i/total_seconds)*100)
@@ -133,7 +133,7 @@ for j in range(0,1):
 
 
     SaveQueues.save_queues(queue_1,queue_received,settled_transactions,queue_2)
-    statistics = StatisticsOutput.calculate_total_SE(transactions_entry, settled_transactions, statistics)
+    final_settlement_efficiency = StatisticsOutput.calculate_total_SE(transactions_entry, settled_transactions, final_settlement_efficiency)
     StatisticsOutput.calculate_SE_per_participant(transactions_entry, settled_transactions)
 
     #event_log.to_csv(f'eventlog{j}.csv', index=False, sep = ';')
@@ -145,8 +145,7 @@ for j in range(0,1):
     print("End Time:", end_time.strftime('%Y-%m-%d %H:%M:%S'))
     duration = end_time - start_time
     print("Execution Duration:", duration)
-    
-total_unsettled_value_over_time.to_csv('statistics\\total_unsettled_value_over_time.csv', index=False, sep = ';')
-SE_over_time.to_csv('statistics\\SE_over_time.csv', index=False, sep = ';')
-statistics.to_csv('statistics\\statistics.csv', index=False, sep = ';')
+
+StatisticsOutput.statistics_generate_output(total_unsettled_value_over_time, SE_over_time, final_settlement_efficiency)
+
 

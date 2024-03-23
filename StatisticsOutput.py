@@ -30,7 +30,9 @@ def calculate_SE_per_participant(transactions_entry,settled_transactions):
         merged_df['settled_input_ratio'] = merged_df['Value_settled'] / merged_df['Value_input']
         #merged_df['settled_input_ratio'] = merged_df['settled_input_ratio'].apply(lambda x: "{:.2%}".format(x))
         plt.figure(figsize=(20, 7))
-        bars = plt.bar(merged_df['FromParticipantId'], merged_df['settled_input_ratio'], color='limegreen')
+        merged_df['FromParticipantId'] = merged_df['FromParticipantId'].astype(int)
+        sorted_df = merged_df.sort_values(by='FromParticipantId')
+        bars = plt.bar(sorted_df['FromParticipantId'], sorted_df['settled_input_ratio'], color='limegreen')
         for bar in bars:
             yval = bar.get_height()
             plt.text(bar.get_x() + bar.get_width()/2, yval + 0.005, "{:.2%}".format(yval), ha='center', va='bottom')
@@ -75,7 +77,7 @@ def calculate_total_value_unsettled(queue_2):
 
     return total_unsettled_value_timepoint
 
-def statistics_generate_output(total_unsettled_value_over_time, SE_over_time, statistics):
+def statistics_generate_output(total_unsettled_value_over_time, SE_over_time, final_settlement_efficiency):
 
     unsettled_plot = total_unsettled_value_over_time.iloc[0]
     plt.figure(figsize=(20, 7))
@@ -84,6 +86,7 @@ def statistics_generate_output(total_unsettled_value_over_time, SE_over_time, st
     plt.xlabel('Time')
     plt.ylabel('Value')
     plt.xticks(rotation=90)
+    plt.grid(axis='y')
     plt.tight_layout()
     plt.savefig(f'statisticsPNG\\total_unsettled_value_over_time.png')
 
@@ -94,9 +97,10 @@ def statistics_generate_output(total_unsettled_value_over_time, SE_over_time, st
     plt.xlabel('Time')
     plt.ylabel('Value')
     plt.xticks(rotation=90)
+    plt.grid(axis='y')
     plt.tight_layout()
     plt.savefig(f'statisticsPNG\\SE_over_time.png')
 
     total_unsettled_value_over_time.to_csv('statisticsCSV\\total_unsettled_value_over_time.csv', index=False, sep = ';')
     SE_over_time.to_csv('statisticsCSV\\SE_over_time.csv', index=False, sep = ';')
-    statistics.to_csv('statisticsCSV\\statistics.csv', index=False, sep = ';')
+    final_settlement_efficiency.to_csv('statisticsCSV\\final_settlement_efficiency.csv', index=False, sep = ';')

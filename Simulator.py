@@ -84,8 +84,8 @@ for j in range(0,1):
     closing_time = datetime.time(19,30,00)
     print(closing_time)
 
-    for i in range(10000): #for debugging
-    #for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400
+    #for i in range(10000): #for debugging
+    for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400
 
         if i % 8640 == 0:
             percent_complete = round((i/total_seconds)*100)

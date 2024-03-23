@@ -11,28 +11,22 @@ import pandas as pd
 import datetime
 import time
 
-final_settlement_efficiency = pd.DataFrame(columns=['Settlement efficiency'])
-
-for j in range(0,1):
-
-    #Generator.generate_data()
-
-    start_time = datetime.datetime.now()
-    print("Start Time:", start_time.strftime('%Y-%m-%d %H:%M:%S'))
+def simulator(opening_time, closing_time, recycling, credit_limit_percentage, freeze, freeze_part, freeze_time):
 
     #read in participant and account data:
-    participants = PartAccData.read_csv_and_create_participants('InputData\PARTICIPANTS1.csv') #Dictionary (key:PartID, value:Part Object)
+    participants = PartAccData.read_csv_and_create_participants('InputData\PARTICIPANTS1.csv', credit_limit_percentage) #Dictionary (key:PartID, value:Part Object)
 
     #read in transaction data:
     transactions_entry = TransData.read_TRANS('InputData\TRANSACTION1.csv') #Dataframe of all transactions
 
-     # Keep in mind to have the correct format when reading participants in!
+    # Keep in mind to have the correct format when reading participants in!
     balances_history = pd.DataFrame(columns=['PartID', "Account ID"])
     for i, value in participants.items():
         for j in transactions_entry['FromAccountId'].unique():
             new_row = pd.DataFrame([[value.get_part_id(), value.get_account(j).get_account_id()]],columns=['PartID', 'Account ID'])
             balances_history = pd.concat([balances_history, new_row], ignore_index=True)
     
+    final_settlement_efficiency = pd.DataFrame(columns=['Settlement efficiency'])
     SE_over_time = pd.DataFrame()
     cumulative_inserted = pd.DataFrame()
     total_unsettled_value_over_time = pd.DataFrame()
@@ -79,12 +73,12 @@ for j in range(0,1):
     total_seconds = int((end - start).total_seconds())
 
 
-    opening_time = datetime.time(1,30,0)
+    print("opening time: ")
     print(opening_time)
-    closing_time = datetime.time(19,30,00)
+    print("closing time: ")
     print(closing_time)
 
-    #for i in range(10000): #for debugging
+    #for i in range(12000): #for debugging
     for i in range(total_seconds):   # For-loop through every minute of real-time processing of the business day 86400
 
         if i % 8640 == 0:
@@ -93,11 +87,15 @@ for j in range(0,1):
             print(f'\r|{bar}| {percent_complete}% ', end='')
 
         time = start + datetime.timedelta(seconds=i)
+        time_hour = time.time()
 
         modified_accounts = dict() # Keep track of the accounts modified in this minute to use in queue 2 
 
         insert_transactions = transactions_entry[transactions_entry['Time']==time]     # Take all the transactions inserted on this minute
 
+        if freeze and time_hour > freeze_time:
+            insert_transactions = insert_transactions[(insert_transactions['FromParticipantId'] != freeze_part) & (insert_transactions['ToParticipantId'] != freeze_part)]
+        
         cumulative_inserted = pd.concat([cumulative_inserted,insert_transactions], ignore_index=True)
         
         end_validating, start_validating, event_log = Validation.validating_duration(insert_transactions, start_validating, end_validating, time, event_log)
@@ -106,11 +104,13 @@ for j in range(0,1):
 
         end_matching, start_matching, event_log = MatchingMechanism.matching_duration(start_matching, end_matching, time, event_log)
         
-        time_hour = time.time()
+        
         if time_hour >= opening_time and time_hour < closing_time: # Guarantee closed
             end_matching, start_checking_balance, end_checking_balance, start_settlement_execution, end_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.settle(time, end_matching, start_checking_balance, end_checking_balance, start_settlement_execution, end_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts) # Settle matched transactions
         
-            start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.atomic_retry_settle(time, start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts)
+            if recycling:
+                start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2,  settled_transactions, event_log = SettlementMechanism.atomic_retry_settle(time, start_again_checking_balance, end_again_checking_balance, start_again_settlement_execution, end_again_settlement_execution, queue_2, settled_transactions, participants, event_log, modified_accounts)
+        
         if time_hour == closing_time:       # Empty queue 1 at close and put in instructions received
             queue_received, queue_1, event_log = MatchingMechanism.clear_queue_unmatched(queue_received, queue_1, time, event_log)
         
@@ -133,19 +133,37 @@ for j in range(0,1):
 
 
     SaveQueues.save_queues(queue_1,queue_received,settled_transactions,queue_2)
-    final_settlement_efficiency = StatisticsOutput.calculate_total_SE(transactions_entry, settled_transactions, final_settlement_efficiency)
-    StatisticsOutput.calculate_SE_per_participant(transactions_entry, settled_transactions)
+    final_settlement_efficiency = StatisticsOutput.calculate_total_SE(cumulative_inserted, settled_transactions, final_settlement_efficiency)
+    StatisticsOutput.calculate_SE_per_participant(cumulative_inserted, settled_transactions)
 
+    #cumulative_inserted.to_csv('cumulative_inserted.csv', index=False, sep = ';')
     #event_log.to_csv(f'eventlog{j}.csv', index=False, sep = ';')
     event_log.to_csv('eventlog\\eventlog.csv', index=False, sep = ';')
 
     LogPartData.balances_history_calculations(balances_history, participants)
 
+    StatisticsOutput.statistics_generate_output(total_unsettled_value_over_time, SE_over_time, final_settlement_efficiency)
+
+
+if __name__ == '__main__':
+
+    #Initializations:
+    opening_time = datetime.time(1,30,0)
+    closing_time = datetime.time(19,30,00)
+    recycling = True
+    credit_limit_percentage = 1.0
+
+    # Freeze participant
+    freeze = False
+    freeze_part = '1'
+    freeze_time = datetime.time(15,30,00)
+
+    start_time = datetime.datetime.now()
+    print("Start Time:", start_time.strftime('%Y-%m-%d %H:%M:%S'))
+
+    simulator(opening_time, closing_time, recycling, credit_limit_percentage, freeze, freeze_part, freeze_time)
+
     end_time = datetime.datetime.now()
     print("End Time:", end_time.strftime('%Y-%m-%d %H:%M:%S'))
     duration = end_time - start_time
     print("Execution Duration:", duration)
-
-StatisticsOutput.statistics_generate_output(total_unsettled_value_over_time, SE_over_time, final_settlement_efficiency)
-
-

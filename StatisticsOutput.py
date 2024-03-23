@@ -2,11 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def calculate_total_SE(transactions_entry, settled_transactions, final_settlement_efficiency):
+def calculate_total_SE(cumulative_inserted, settled_transactions, final_settlement_efficiency):
 
     if not settled_transactions.empty:
 
-        total_input_value = transactions_entry['Value'].sum()
+        total_input_value = cumulative_inserted['Value'].sum()
         total_settled_value = settled_transactions['Value'].sum()
         settlement_efficiency = total_settled_value/total_input_value
         print("\nSettlement efficiency:")
@@ -20,12 +20,12 @@ def calculate_total_SE(transactions_entry, settled_transactions, final_settlemen
 
     return final_settlement_efficiency
 
-def calculate_SE_per_participant(transactions_entry,settled_transactions):
+def calculate_SE_per_participant(cumulative_inserted,settled_transactions):
 
     if not settled_transactions.empty:
 
         settled_part = settled_transactions.groupby('FromParticipantId')['Value'].sum().reset_index()
-        input_part = transactions_entry.groupby('FromParticipantId')['Value'].sum().reset_index()
+        input_part = cumulative_inserted.groupby('FromParticipantId')['Value'].sum().reset_index()
         merged_df = pd.merge(settled_part, input_part, on='FromParticipantId', suffixes=('_settled', '_input'))
         merged_df['settled_input_ratio'] = merged_df['Value_settled'] / merged_df['Value_input']
         #merged_df['settled_input_ratio'] = merged_df['settled_input_ratio'].apply(lambda x: "{:.2%}".format(x))

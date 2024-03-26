@@ -10,6 +10,7 @@ import ClearQueus
 #import Generator
 import pandas as pd
 import datetime
+import warnings
 #import time
 
 def simulator(opening_time, closing_time, recycling, credit_limit_percentage, freeze, freeze_part, freeze_time):
@@ -165,6 +166,8 @@ def simulator(opening_time, closing_time, recycling, credit_limit_percentage, fr
 
 
 if __name__ == '__main__':
+
+    warnings.simplefilter(action='ignore', category=FutureWarning)
 
     #Initializations:
     opening_time = datetime.time(1,30,0)

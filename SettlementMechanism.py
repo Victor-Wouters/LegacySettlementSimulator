@@ -92,11 +92,16 @@ def settlement_execution(instructions_for_processing, participants):
                     participants.get(from_part).get_account(from_acc).edit_balance(-transaction_value)
                     participants.get(to_part).get_account(to_acc).edit_balance(transaction_value)
 
+# WRONG, ONLY LAST ACCOUNT IS BEING SAVED
 def keep_track_modified_accounts(instructions_for_processing, modified_accounts):
       
     for _, instruction in instructions_for_processing.iterrows():
         
-        modified_accounts[instruction["ToParticipantId"]] = instruction["ToAccountId"]
+        if instruction["ToParticipantId"] in modified_accounts:
+            if instruction["ToAccountId"] not in modified_accounts[instruction["ToParticipantId"]]:
+                modified_accounts[instruction["ToParticipantId"]].append(instruction["ToAccountId"])
+            else:
+                modified_accounts[instruction["ToParticipantId"]] = [instruction["ToAccountId"]]
         
     return modified_accounts
 
@@ -168,15 +173,16 @@ def atomic_retry_settle(time, start_again_checking_balance, end_again_checking_b
      
     if not queue_2.empty:
         for key, value in modified_accounts.items():
-            first_instruction = queue_2[(queue_2["FromParticipantId"] == key) & (queue_2["FromAccountId"] == value)] 
-            retry_linkcodes = first_instruction['Linkcode'].unique()
-            for linkcode in retry_linkcodes:
-                instructions_for_processing = queue_2[queue_2["Linkcode"] == linkcode].copy()
-                queue_2 = queue_2[queue_2['Linkcode'] != linkcode]
-                
-                instructions_for_processing["Starttime"] = time
-                # Save for 2 sec before checking
-                start_again_checking_balance = pd.concat([start_again_checking_balance,instructions_for_processing], ignore_index=True)
+            for account_id in value:
+                first_instruction = queue_2[(queue_2["FromParticipantId"] == key) & (queue_2["FromAccountId"] == account_id)] 
+                retry_linkcodes = first_instruction['Linkcode'].unique()
+                for linkcode in retry_linkcodes:
+                    instructions_for_processing = queue_2[queue_2["Linkcode"] == linkcode].copy()
+                    queue_2 = queue_2[queue_2['Linkcode'] != linkcode]
+                    
+                    instructions_for_processing["Starttime"] = time
+                    # Save for 2 sec before checking
+                    start_again_checking_balance = pd.concat([start_again_checking_balance,instructions_for_processing], ignore_index=True)
                 
     rows_to_remove = []
     for index, instruction_checking in start_again_checking_balance.iterrows():
